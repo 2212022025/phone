@@ -634,6 +634,10 @@
                 <canvas id="cam-canvas" style="display:none;"></canvas>
                 <div style="height: 100px; background:black; position: relative; display:flex; justify-content:center; align-items:center;">
                      <div style="width:60px; height:60px; border:4px solid white; border-radius:50%; background:rgba(255,255,255,0.2); cursor:pointer;" onclick="snap()"></div>
+                     <!-- Added Camera Switch Icon -->
+                     <div style="position: absolute; right: 30px; color: white; font-size: 24px; cursor: pointer;" onclick="switchCamera()">
+                         <i class="fas fa-sync"></i>
+                     </div>
                 </div>
             </div>
         </div>
@@ -1564,14 +1568,34 @@
     }
 
     let stream;
+    let currentFacingMode = 'environment'; // Default to rear camera
+
     function startCam() {
         if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({video:true}).then(s => {
+            // Stop previous tracks if existing
+            if(stream) { stream.getTracks().forEach(t => t.stop()); }
+            
+            const constraints = { video: { facingMode: currentFacingMode } };
+
+            navigator.mediaDevices.getUserMedia(constraints).then(s => {
                 stream = s;
                 document.getElementById('cam-feed').srcObject = s;
-            }).catch(e => console.log(e));
+            }).catch(e => {
+                console.log(e);
+                // Fallback for devices that don't support facingMode constraints (desktops)
+                navigator.mediaDevices.getUserMedia({video:true}).then(s => {
+                    stream = s;
+                    document.getElementById('cam-feed').srcObject = s;
+                });
+            });
         }
     }
+
+    function switchCamera() {
+        currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
+        startCam();
+    }
+
     function stopCam() { if(stream) stream.getTracks().forEach(t => t.stop()); }
     function snap() {
         const video = document.getElementById('cam-feed');
